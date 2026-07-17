@@ -15,20 +15,17 @@ import {BlockHelixMasterDecoderAndSanitizer} from
 // Then set MASTER_DECODER_ADDRESS (box + Amplify env) to the logged address, and every
 // risk-profile deploy pins it.
 contract DeployMasterDecoder is Script {
-    // Uniswap V3 NonFungiblePositionManager on Base. Unused by the swap sanitizer (exactInput),
-    // but the UniswapV3 sanitizer constructor requires it. boringVault is unused -> address(0).
-    address constant BASE_UNIV3_NFPM = 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1;
     string constant NAME = "bh-master-decoder-v1";
 
     function run() external {
         Deployer deployer = Deployer(vm.envAddress("DEPLOYER_CONTRACT_ADDRESS"));
 
+        // Zero-arg constructor: no constructorArgs to append.
         bytes memory creationCode = type(BlockHelixMasterDecoderAndSanitizer).creationCode;
-        bytes memory args = abi.encode(address(0), BASE_UNIV3_NFPM);
 
         console.log("predicted address:", deployer.getAddress(NAME));
         vm.startBroadcast();
-        address decoder = deployer.deployContract(NAME, creationCode, args, 0);
+        address decoder = deployer.deployContract(NAME, creationCode, "", 0);
         vm.stopBroadcast();
         console.log("master decoder deployed:", decoder);
     }

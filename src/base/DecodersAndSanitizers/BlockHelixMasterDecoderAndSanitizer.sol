@@ -13,18 +13,19 @@ import {BalancerV2DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Prot
  *         and referenced by every vault's risk-profile manage root — the strategist supplies
  *         this address in each `manage` call.
  *
- *         The sanitizers are pure: they extract addresses from calldata, and per-vault pinning
- *         (onBehalfOf / recipient == the vault) lives in the merkle LEAF, not here. So the
- *         `boringVault` immutable is unused and a single shared instance is safe. These three
- *         sanitizers share no function names, so no collision overrides are required.
+ *         Vault-agnostic singleton: the sanitizers are pure (per-vault pinning lives in the
+ *         merkle LEAF, not here), so the `boringVault` immutable is unused and fixed to
+ *         address(0). No external constructor args. These three sanitizers share no function
+ *         names, so no collision overrides are required.
  */
 contract BlockHelixMasterDecoderAndSanitizer is
     AaveV3DecoderAndSanitizer,
     UniswapV3DecoderAndSanitizer,
     BalancerV2DecoderAndSanitizer
 {
-    constructor(address _boringVault, address _uniswapV3NonFungiblePositionManager)
-        BaseDecoderAndSanitizer(_boringVault)
-        UniswapV3DecoderAndSanitizer(_uniswapV3NonFungiblePositionManager)
-    {}
+    // Base Uniswap V3 NonFungiblePositionManager — read only by LP functions (which we don't
+    // leaf); the swap sanitizer (exactInput) never touches it.
+    address internal constant UNIV3_NFPM = 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1;
+
+    constructor() BaseDecoderAndSanitizer(address(0)) UniswapV3DecoderAndSanitizer(UNIV3_NFPM) {}
 }
