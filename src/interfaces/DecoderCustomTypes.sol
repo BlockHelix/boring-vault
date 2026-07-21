@@ -93,6 +93,26 @@ contract DecoderCustomTypes {
         uint256 amountOutMinimum;
     }
 
+    // Uniswap SwapRouter02 (the router deployed on Base and most L2s): exactInput / exactInputSingle
+    // both DROP the `deadline` field the original SwapRouter carried, so they are distinct
+    // signatures/selectors from DecoderCustomTypes.ExactInputParams above.
+    struct UniswapV3Router02ExactInputParams {
+        bytes path;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+    }
+
+    struct UniswapV3Router02ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+
     // ========================================= MORPHO BLUE =========================================
 
     struct MarketParams {

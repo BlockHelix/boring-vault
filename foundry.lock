@@ -1,0 +1,17 @@
+{
+  "lib/LayerZero-v2": {
+    "rev": "7aebbd7c79b2dc818f7bb054aed2405ca076b9d6"
+  },
+  "lib/ccip": {
+    "rev": "9eb2708908536544c26ad67a4be96b5974d2d9d0"
+  },
+  "lib/forge-std": {
+    "rev": "ae570fec082bfe1c1f45b0acca4a2b4f84d345ce"
+  },
+  "lib/openzeppelin-contracts": {
+    "rev": "01ef448981be9d20ca85f2faf6ebdf591ce409f3"
+  },
+  "lib/solmate": {
+    "rev": "c892309933b25c03d32b1b0d674df7ae292ba925"
+  }
+}

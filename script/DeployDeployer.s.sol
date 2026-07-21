@@ -3,17 +3,15 @@ pragma solidity 0.8.21;
 
 import {Deployer} from "src/helper/Deployer.sol";
 import {RolesAuthority, Authority} from "@solmate/auth/authorities/RolesAuthority.sol";
-import {ContractNames} from "resources/ContractNames.sol";
-import {MainnetAddresses} from "test/resources/MainnetAddresses.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
 /**
- *  source .env && forge script script/DeployDeployer.s.sol:DeployDeployerScript --with-gas-price 30000000000 --slow --broadcast --etherscan-api-key $ETHERSCAN_KEY --verify
+ *  source .env && forge script script/DeployDeployer.s.sol:DeployDeployerScript --slow --broadcast --etherscan-api-key $BASE_RPC_URL --verify --sender $DEPLOYER --account bh-aws
  * @dev Optionally can change `--with-gas-price` to something more reasonable
  */
-contract DeployDeployerScript is Script, ContractNames, MainnetAddresses {
+contract DeployDeployerScript is Script {
     uint256 public privateKey;
 
     // Contracts to deploy
@@ -21,22 +19,23 @@ contract DeployDeployerScript is Script, ContractNames, MainnetAddresses {
     Deployer public deployer;
 
     uint8 public DEPLOYER_ROLE = 1;
+    address public dev0Address = 0x00ef1de12bdC87874E2e9Bf7C060553efe152b03;
+    string public BlockHelixRolesAuthorityName = "Block Helix Roles Authority V0.0";
 
     function setUp() external {
-        privateKey = vm.envUint("ETHERFI_LIQUID_DEPLOYER");
-        vm.createSelectFork("mainnet");
+        vm.createSelectFork("base");
     }
 
     function run() external {
         bytes memory creationCode;
         bytes memory constructorArgs;
-        vm.startBroadcast(privateKey);
+        vm.startBroadcast();
 
         deployer = new Deployer(dev0Address, Authority(address(0)));
         creationCode = type(RolesAuthority).creationCode;
         constructorArgs = abi.encode(dev0Address, Authority(address(0)));
         rolesAuthority =
-            RolesAuthority(deployer.deployContract(SevenSeasRolesAuthorityName, creationCode, constructorArgs, 0));
+            RolesAuthority(deployer.deployContract(BlockHelixRolesAuthorityName, creationCode, constructorArgs, 0));
 
         deployer.setAuthority(rolesAuthority);
 

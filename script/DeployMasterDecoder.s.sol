@@ -6,8 +6,10 @@ import {Deployer} from "src/helper/Deployer.sol";
 import {BlockHelixMasterDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/BlockHelixMasterDecoderAndSanitizer.sol";
 
-// Deploys the ONE shared master decoder via CREATE3 (stable name `bh-master-decoder-v1`).
-// Run once, with the key that owns the Deployer:
+// Deploys the ONE shared master decoder via CREATE3. The name is the CREATE3 salt, so a new
+// bytecode revision needs a NEW name (v2, v3, …) — redeploying an existing name reverts. v2
+// adds the SwapRouter02 exactInput/exactInputSingle sanitizers. Run once, with the key that
+// owns the Deployer:
 //
 //   source .env && forge script script/DeployMasterDecoder.s.sol \
 //     --rpc-url $BASE_RPC_URL --account bh-aws --sender $DEPLOYER --broadcast --verify
@@ -15,7 +17,7 @@ import {BlockHelixMasterDecoderAndSanitizer} from
 // Then set MASTER_DECODER_ADDRESS (box + Amplify env) to the logged address, and every
 // risk-profile deploy pins it.
 contract DeployMasterDecoder is Script {
-    string constant NAME = "bh-master-decoder-v1";
+    string constant NAME = "bh-master-decoder-v2";
 
     function run() external {
         Deployer deployer = Deployer(vm.envAddress("DEPLOYER_CONTRACT_ADDRESS"));

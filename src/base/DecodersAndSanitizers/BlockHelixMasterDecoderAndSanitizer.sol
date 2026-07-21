@@ -3,7 +3,7 @@ pragma solidity 0.8.21;
 
 import {BaseDecoderAndSanitizer} from "src/base/DecodersAndSanitizers/BaseDecoderAndSanitizer.sol";
 import {AaveV3DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/AaveV3DecoderAndSanitizer.sol";
-import {UniswapV3DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/UniswapV3DecoderAndSanitizer.sol";
+import {UniswapV3Router02DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/UniswapV3Router02DecoderAndSanitizer.sol";
 import {BalancerV2DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/BalancerV2DecoderAndSanitizer.sol";
 
 /**
@@ -20,12 +20,10 @@ import {BalancerV2DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Prot
  */
 contract BlockHelixMasterDecoderAndSanitizer is
     AaveV3DecoderAndSanitizer,
-    UniswapV3DecoderAndSanitizer,
+    UniswapV3Router02DecoderAndSanitizer,
     BalancerV2DecoderAndSanitizer
 {
-    // Base Uniswap V3 NonFungiblePositionManager — read only by LP functions (which we don't
-    // leaf); the swap sanitizer (exactInput) never touches it.
-    address internal constant UNIV3_NFPM = 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1;
-
-    constructor() BaseDecoderAndSanitizer(address(0)) UniswapV3DecoderAndSanitizer(UNIV3_NFPM) {}
+    // Swap-only Uniswap sanitizer (SwapRouter02) + Aave v3 + Balancer v2 flashloans. All pure;
+    // per-vault pinning lives in the merkle leaf, so the boringVault immutable is address(0).
+    constructor() BaseDecoderAndSanitizer(address(0)) {}
 }
