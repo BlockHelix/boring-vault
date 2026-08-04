@@ -11,6 +11,11 @@ deny_warnings = false
 
 [rpc_endpoints]
 mainnet = "${MAINNET_RPC_URL}"
+# Alias for chainName='ethereum' in the factory's chains.ts. DeployVaultWithConfig does
+# vm.createSelectFork(config.deploymentParameters.chainName), and the generated config for
+# chain 1 carries "ethereum" — without this alias the FIRST mainnet vault deploy reverts at
+# fork selection. Base never hit it because its chainName and alias are both "base".
+ethereum = "${MAINNET_RPC_URL}"
 polygon = "${MATIC_RPC_URL}"
 bsc = "${BNB_RPC_URL}"
 avalanche = "${AVALANCHE_RPC_URL}"
