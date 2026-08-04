@@ -8,7 +8,7 @@ import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 
 /**
- *  source .env && forge script script/DeployDeployer.s.sol:DeployDeployerScript --slow --broadcast --etherscan-api-key $BASE_RPC_URL --verify --sender $DEPLOYER --account bh-aws
+ *  source .env && forge script script/DeployDeployer.s.sol:DeployDeployerScript --slow --broadcast --etherscan-api-key $ETHERSCAN_KEY --verify --sender $DEPLOYER --account bh-aws
  * @dev Optionally can change `--with-gas-price` to something more reasonable
  */
 contract DeployDeployerScript is Script {
@@ -23,7 +23,7 @@ contract DeployDeployerScript is Script {
     string public BlockHelixRolesAuthorityName = "Block Helix Roles Authority V0.0";
 
     function setUp() external {
-        vm.createSelectFork("base");
+        vm.createSelectFork("mainnet");
     }
 
     function run() external {
