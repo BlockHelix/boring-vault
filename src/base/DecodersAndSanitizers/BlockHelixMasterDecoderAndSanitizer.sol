@@ -11,12 +11,14 @@ import {CurveDecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols
 import {ERC4626DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/ERC4626DecoderAndSanitizer.sol";
 import {PendleRouterDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/PendleRouterDecoderAndSanitizer.sol";
+import {UnlockReceiptDecoderAndSanitizer} from
+    "src/base/DecodersAndSanitizers/Protocols/UnlockReceiptDecoderAndSanitizer.sol";
 
 /**
  * @title BlockHelixMasterDecoderAndSanitizer
  * @notice One shared decoder-and-sanitizer for every BlockHelix vault: Aave v3 + Uniswap v3
  *         + Balancer v2 (flashloans) + Morpho Blue + Curve + ERC4626 + Pendle. Deployed ONCE via
- *         CREATE3 (`bh-master-decoder-v5`) and referenced by every vault's risk-profile manage
+ *         CREATE3 (`bh-master-decoder-v6`) and referenced by every vault's risk-profile manage
  *         root — the strategist supplies this address in each `manage` call.
  *
  *         v4 added Curve `exchange` and ERC4626 `deposit`/`redeem` for the sUSDe/USDtb loop.
@@ -27,6 +29,11 @@ import {PendleRouterDecoderAndSanitizer} from
  *         sanitizers already reject external-aggregator routes and limit-order fills. Verified
  *         against compiled methodIdentifiers: Pendle's selectors are disjoint from every other
  *         mixin, so no new override resolutions are needed.
+ *
+ *         v6 adds the UnlockReceipt escrow's `claim(uint256,address)`: apyUSD.redeem() mints an
+ *         ERC-721 claim ticket (SY-apyUSD redeems ONLY to apyUSD, and apyUSD's 4626 interface
+ *         fronts a 3-20 day redemption queue), so the PT exit's final hop is a claim on the
+ *         escrow. The receiver is pinned in the leaf; the tokenId is deliberately free.
  *
  *         Vault-agnostic singleton: the sanitizers are pure (per-vault pinning lives in the
  *         merkle LEAF, not here), so the `boringVault` immutable is unused and fixed to
@@ -39,7 +46,8 @@ contract BlockHelixMasterDecoderAndSanitizer is
     MorphoBlueDecoderAndSanitizer,
     CurveDecoderAndSanitizer,
     ERC4626DecoderAndSanitizer,
-    PendleRouterDecoderAndSanitizer
+    PendleRouterDecoderAndSanitizer,
+    UnlockReceiptDecoderAndSanitizer
 {
     // All pure; per-vault pinning lives in the merkle leaf, so the boringVault immutable is
     // address(0). Names overlap across mixins (supply/withdraw/borrow/repay) but the signatures

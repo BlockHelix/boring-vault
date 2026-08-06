@@ -21,7 +21,7 @@ import {BlockHelixMasterDecoderAndSanitizer} from
 // Then set MASTER_DECODER_ADDRESS (box + Amplify env) to the logged address, and every
 // risk-profile deploy pins it.
 contract DeployMasterDecoder is Script {
-    string constant NAME = "bh-master-decoder-v5";
+    string constant NAME = "bh-master-decoder-v6";
 
     function run() external {
         Deployer deployer = Deployer(vm.envAddress("DEPLOYER_CONTRACT_ADDRESS"));
