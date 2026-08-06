@@ -9,17 +9,24 @@ import {MorphoBlueDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/MorphoBlueDecoderAndSanitizer.sol";
 import {CurveDecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/CurveDecoderAndSanitizer.sol";
 import {ERC4626DecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/ERC4626DecoderAndSanitizer.sol";
+import {PendleRouterDecoderAndSanitizer} from
+    "src/base/DecodersAndSanitizers/Protocols/PendleRouterDecoderAndSanitizer.sol";
 
 /**
  * @title BlockHelixMasterDecoderAndSanitizer
  * @notice One shared decoder-and-sanitizer for every BlockHelix vault: Aave v3 + Uniswap v3
- *         + Balancer v2 (flashloans) + Morpho Blue + Curve + ERC4626. Deployed ONCE via CREATE3
- *         (`bh-master-decoder-v4`) and referenced by every vault's risk-profile manage root —
- *         the strategist supplies this address in each `manage` call.
+ *         + Balancer v2 (flashloans) + Morpho Blue + Curve + ERC4626 + Pendle. Deployed ONCE via
+ *         CREATE3 (`bh-master-decoder-v5`) and referenced by every vault's risk-profile manage
+ *         root — the strategist supplies this address in each `manage` call.
  *
- *         v4 adds Curve `exchange` and ERC4626 `deposit`/`redeem`, which the sUSDe/USDtb levered
- *         loop needs: USDtb routes through Curve (no Uniswap v3 pool for it at any fee tier) and
- *         sUSDe is minted from USDe at NAV via a 4626 deposit rather than swapped.
+ *         v4 added Curve `exchange` and ERC4626 `deposit`/`redeem` for the sUSDe/USDtb loop.
+ *
+ *         v5 adds the Pendle router, which the PT levered loop needs: apxUSD is minted into
+ *         SY via `mintSyFromToken` and swapped to PT on the Pendle AMM via `swapExactSyForPt`
+ *         (plus the inverse legs and post-maturity `redeemPyToSy` for the exit path). Pendle's
+ *         sanitizers already reject external-aggregator routes and limit-order fills. Verified
+ *         against compiled methodIdentifiers: Pendle's selectors are disjoint from every other
+ *         mixin, so no new override resolutions are needed.
  *
  *         Vault-agnostic singleton: the sanitizers are pure (per-vault pinning lives in the
  *         merkle LEAF, not here), so the `boringVault` immutable is unused and fixed to
@@ -31,7 +38,8 @@ contract BlockHelixMasterDecoderAndSanitizer is
     BalancerV2DecoderAndSanitizer,
     MorphoBlueDecoderAndSanitizer,
     CurveDecoderAndSanitizer,
-    ERC4626DecoderAndSanitizer
+    ERC4626DecoderAndSanitizer,
+    PendleRouterDecoderAndSanitizer
 {
     // All pure; per-vault pinning lives in the merkle leaf, so the boringVault immutable is
     // address(0). Names overlap across mixins (supply/withdraw/borrow/repay) but the signatures
