@@ -13,12 +13,14 @@ import {PendleRouterDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/PendleRouterDecoderAndSanitizer.sol";
 import {UnlockReceiptDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/UnlockReceiptDecoderAndSanitizer.sol";
+import {EthenaWithdrawDecoderAndSanitizer} from
+    "src/base/DecodersAndSanitizers/Protocols/EthenaWithdrawDecoderAndSanitizer.sol";
 
 /**
  * @title BlockHelixMasterDecoderAndSanitizer
  * @notice One shared decoder-and-sanitizer for every BlockHelix vault: Aave v3 + Uniswap v3
  *         + Balancer v2 (flashloans) + Morpho Blue + Curve + ERC4626 + Pendle. Deployed ONCE via
- *         CREATE3 (`bh-master-decoder-v6`) and referenced by every vault's risk-profile manage
+ *         CREATE3 (`bh-master-decoder-v7`) and referenced by every vault's risk-profile manage
  *         root — the strategist supplies this address in each `manage` call.
  *
  *         v4 added Curve `exchange` and ERC4626 `deposit`/`redeem` for the sUSDe/USDtb loop.
@@ -35,6 +37,13 @@ import {UnlockReceiptDecoderAndSanitizer} from
  *         fronts a 3-20 day redemption queue), so the PT exit's final hop is a claim on the
  *         escrow. The receiver is pinned in the leaf; the tokenId is deliberately free.
  *
+ *         v7 adds Ethena's withdraw path: `cooldownShares`/`cooldownAssets` + `unstake`. sUSDe
+ *         sets `cooldownDuration` non-zero (86400s when measured 2026-09-01), and while it is
+ *         non-zero StakedUSDeV2 disables `redeem`/`withdraw` outright — they revert
+ *         `OperationNotAllowed()`. So the v4 4626 `redeem` leaf, which the sUSDe/USDtb loop was
+ *         built on, cannot exit that position at all: the collateral is frozen until these
+ *         selectors are callable. The receiver is pinned in the leaf; the amount is free.
+ *
  *         Vault-agnostic singleton: the sanitizers are pure (per-vault pinning lives in the
  *         merkle LEAF, not here), so the `boringVault` immutable is unused and fixed to
  *         address(0). No external constructor args.
@@ -47,7 +56,8 @@ contract BlockHelixMasterDecoderAndSanitizer is
     CurveDecoderAndSanitizer,
     ERC4626DecoderAndSanitizer,
     PendleRouterDecoderAndSanitizer,
-    UnlockReceiptDecoderAndSanitizer
+    UnlockReceiptDecoderAndSanitizer,
+    EthenaWithdrawDecoderAndSanitizer
 {
     // All pure; per-vault pinning lives in the merkle leaf, so the boringVault immutable is
     // address(0). Names overlap across mixins (supply/withdraw/borrow/repay) but the signatures
