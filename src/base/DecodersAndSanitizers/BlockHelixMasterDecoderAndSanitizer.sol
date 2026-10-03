@@ -17,12 +17,14 @@ import {EthenaWithdrawDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/EthenaWithdrawDecoderAndSanitizer.sol";
 import {PendleAggregatorDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/PendleAggregatorDecoderAndSanitizer.sol";
+import {SlipstreamDecoderAndSanitizer} from
+    "src/base/DecodersAndSanitizers/Protocols/SlipstreamDecoderAndSanitizer.sol";
 
 /**
  * @title BlockHelixMasterDecoderAndSanitizer
  * @notice One shared decoder-and-sanitizer for every BlockHelix vault: Aave v3 + Uniswap v3
  *         + Balancer v2 (flashloans) + Morpho Blue + Curve + ERC4626 + Pendle. Deployed ONCE via
- *         CREATE3 (`bh-master-decoder-v8`) and referenced by every vault's risk-profile manage
+ *         CREATE3 (`bh-master-decoder-v9`) and referenced by every vault's risk-profile manage
  *         root — the strategist supplies this address in each `manage` call.
  *
  *         v4 added Curve `exchange` and ERC4626 `deposit`/`redeem` for the sUSDe/USDtb loop.
@@ -51,6 +53,11 @@ import {PendleAggregatorDecoderAndSanitizer} from
  *         PT-apyUSD/USDC against ~0.35% through the router (2026-10-01). These two read Pendle's
  *         TWAP oracle to floor the caller's minimum out, so unlike every other mixin they are view.
  *
+ *         v9 adds Aerodrome Slipstream's router `exactInputSingle` for Base pools priced in tick
+ *         spacing (the B20 stock pools, VVV/WETH). Its struct differs from Uniswap's in tickSpacing
+ *         and deadline, so it is an overload with its own selector; tokenIn, tokenOut and recipient
+ *         are pinned exactly as the Uniswap sanitizers pin them.
+ *
  *         Vault-agnostic singleton: the sanitizers are pure (per-vault pinning lives in the
  *         merkle LEAF, not here), so the `boringVault` immutable is unused and fixed to
  *         address(0). No external constructor args.
@@ -65,7 +72,8 @@ contract BlockHelixMasterDecoderAndSanitizer is
     PendleRouterDecoderAndSanitizer,
     UnlockReceiptDecoderAndSanitizer,
     EthenaWithdrawDecoderAndSanitizer,
-    PendleAggregatorDecoderAndSanitizer
+    PendleAggregatorDecoderAndSanitizer,
+    SlipstreamDecoderAndSanitizer
 {
     // All pure; per-vault pinning lives in the merkle leaf, so the boringVault immutable is
     // address(0). Names overlap across mixins (supply/withdraw/borrow/repay) but the signatures
