@@ -19,12 +19,14 @@ import {PendleAggregatorDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/PendleAggregatorDecoderAndSanitizer.sol";
 import {SlipstreamDecoderAndSanitizer} from
     "src/base/DecodersAndSanitizers/Protocols/SlipstreamDecoderAndSanitizer.sol";
+import {CurveNgDecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/CurveNgDecoderAndSanitizer.sol";
+import {DeadlineDecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protocols/DeadlineDecoderAndSanitizer.sol";
 
 /**
  * @title BlockHelixMasterDecoderAndSanitizer
  * @notice One shared decoder-and-sanitizer for every BlockHelix vault: Aave v3 + Uniswap v3
  *         + Balancer v2 (flashloans) + Morpho Blue + Curve + ERC4626 + Pendle. Deployed ONCE via
- *         CREATE3 (`bh-master-decoder-v9`) and referenced by every vault's risk-profile manage
+ *         CREATE3 (`bh-master-decoder-v10`) and referenced by every vault's risk-profile manage
  *         root — the strategist supplies this address in each `manage` call.
  *
  *         v4 added Curve `exchange` and ERC4626 `deposit`/`redeem` for the sUSDe/USDtb loop.
@@ -58,6 +60,12 @@ import {SlipstreamDecoderAndSanitizer} from
  *         and deadline, so it is an overload with its own selector; tokenIn, tokenOut and recipient
  *         are pinned exactly as the Uniswap sanitizers pin them.
  *
+ *         v10 adds two things the USD3 spike exit needs. SwapRouter02 `multicall(uint256,bytes[])`
+ *         with EMPTY data only, prepended to a bundle as a deadline: the router reverts past it.
+ *         And Curve StableSwap-NG `exchange(...,receiver)` + `exchange_received(...,receiver)`, so
+ *         a route through NG pools hands each hop's whole output to the next and leaves no dust;
+ *         the receiver is returned, so the leaf pins it to the vault or the next pool.
+ *
  *         Vault-agnostic singleton: the sanitizers are pure (per-vault pinning lives in the
  *         merkle LEAF, not here), so the `boringVault` immutable is unused and fixed to
  *         address(0). No external constructor args.
@@ -73,7 +81,9 @@ contract BlockHelixMasterDecoderAndSanitizer is
     UnlockReceiptDecoderAndSanitizer,
     EthenaWithdrawDecoderAndSanitizer,
     PendleAggregatorDecoderAndSanitizer,
-    SlipstreamDecoderAndSanitizer
+    SlipstreamDecoderAndSanitizer,
+    CurveNgDecoderAndSanitizer,
+    DeadlineDecoderAndSanitizer
 {
     // All pure; per-vault pinning lives in the merkle leaf, so the boringVault immutable is
     // address(0). Names overlap across mixins (supply/withdraw/borrow/repay) but the signatures

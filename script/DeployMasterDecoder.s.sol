@@ -10,7 +10,8 @@ import {BlockHelixMasterDecoderAndSanitizer} from
 // bytecode revision needs a NEW name (v2, v3, …) — redeploying an existing name reverts. v2
 // adds the SwapRouter02 exactInput/exactInputSingle sanitizers; v3 adds Morpho Blue; v4 adds
 // Curve exchange + ERC4626 deposit/redeem (the sUSDe/USDtb loop needs both); v9 adds Aerodrome
-// Slipstream exactInputSingle (Base B20 stock and VVV/WETH pools). Deploy to EVERY
+// Slipstream exactInputSingle (Base B20 stock and VVV/WETH pools); v10 adds the SwapRouter02
+// deadline multicall (empty data only) and Curve NG receiver + exchange_received. Deploy to EVERY
 // chain the factory targets: MASTER_DECODER_ADDRESS is a single global, so a name that is not
 // deployed on a chain fails that chain's vault deploy at the require in
 // DeployVaultWithConfig._loadConfig. Run once per chain, with the key that owns the Deployer:
@@ -22,7 +23,7 @@ import {BlockHelixMasterDecoderAndSanitizer} from
 // Then set MASTER_DECODER_ADDRESS (box + Amplify env) to the logged address, and every
 // risk-profile deploy pins it.
 contract DeployMasterDecoder is Script {
-    string constant NAME = "bh-master-decoder-v9";
+    string constant NAME = "bh-master-decoder-v10";
 
     function run() external {
         Deployer deployer = Deployer(vm.envAddress("DEPLOYER_CONTRACT_ADDRESS"));
