@@ -26,7 +26,7 @@ import {DeadlineDecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protoc
  * @title BlockHelixMasterDecoderAndSanitizer
  * @notice One shared decoder-and-sanitizer for every BlockHelix vault: Aave v3 + Uniswap v3
  *         + Balancer v2 (flashloans) + Morpho Blue + Curve + ERC4626 + Pendle. Deployed ONCE via
- *         CREATE3 (`bh-master-decoder-v10`) and referenced by every vault's risk-profile manage
+ *         CREATE3 (`bh-master-decoder-v11`) and referenced by every vault's risk-profile manage
  *         root — the strategist supplies this address in each `manage` call.
  *
  *         v4 added Curve `exchange` and ERC4626 `deposit`/`redeem` for the sUSDe/USDtb loop.
@@ -65,6 +65,10 @@ import {DeadlineDecoderAndSanitizer} from "src/base/DecodersAndSanitizers/Protoc
  *         And Curve StableSwap-NG `exchange(...,receiver)` + `exchange_received(...,receiver)`, so
  *         a route through NG pools hands each hop's whole output to the next and leaves no dust;
  *         the receiver is returned, so the leaf pins it to the vault or the next pool.
+ *
+ *         v11 lets the Pendle router swaps skip the aggregator when the SY takes the token
+ *         itself (PT-USD3's SY redeems to USDC), and admits fills from Pendle's own limit router.
+ *         Both stay under the same TWAP floor on the minimum out.
  *
  *         Vault-agnostic singleton: the sanitizers are pure (per-vault pinning lives in the
  *         merkle LEAF, not here), so the `boringVault` immutable is unused and fixed to
