@@ -16,14 +16,19 @@ interface IDecimals {
 }
 
 /**
- * Pendle router swaps whose token leg runs through KyberSwap.
+ * Pendle router swaps whose token leg runs through KyberSwap, or (v11) needs no swap at all
+ * because the SY mints from / redeems to the token directly.
  *
  * Returned for the leaf to pin: receiver, market, both token ends, pendleSwap, the Kyber router,
- * the Kyber executor and the Kyber output receiver. Checked here, because a leaf cannot see into
- * the aggregator calldata: the token ends agree across both layers, no fee receivers, only the
- * executor receives input, no approval target, no limit orders, and the caller's minimum out is
- * within MAX_BELOW_TWAP_BPS of Pendle's TWAP. Without the floor, a strategist could route the
- * input anywhere with a zero minimum.
+ * the Kyber executor and the Kyber output receiver (all zero on a direct route). Checked here,
+ * because a leaf cannot see into the aggregator calldata: the token ends agree across both layers,
+ * no fee receivers, only the executor receives input, no approval target, and the caller's minimum
+ * out is within MAX_BELOW_TWAP_BPS of Pendle's TWAP. Without the floor, a strategist could route
+ * the input anywhere with a zero minimum.
+ *
+ * v11 admits Pendle's own limit-order fills through its limit router only. A fill only changes
+ * where the PT is matched; the router still pays the receiver, and the TWAP floor bounds what any
+ * mix of fills can return. On 30 Oct a 7,630 PT-USD3 exit quoted 0.62% better with one flash fill.
  *
  * Assumes the SY asset and the swapped token are both USD stablecoins; the market is pinned by
  * the leaf, so that is a policy choice, not an input.
@@ -39,6 +44,7 @@ abstract contract PendleAggregatorDecoderAndSanitizer is BaseDecoderAndSanitizer
     // A legitimate 1,000 PT-apyUSD exit quoted 2.6% under TWAP (apyUSD sells below NAV), 2026-10-01.
     uint256 internal constant MAX_BELOW_TWAP_BPS = 500;
     bytes4 internal constant KYBER_SWAP_SELECTOR = 0xe21fd0e9;
+    address internal constant PENDLE_LIMIT_ROUTER = 0x000000000000c9B3E2C3Ec88B1B4c0cD853f4321;
 
     struct KyberSwapDescription {
         address srcToken;
@@ -70,8 +76,9 @@ abstract contract PendleAggregatorDecoderAndSanitizer is BaseDecoderAndSanitizer
         DecoderCustomTypes.TokenInput calldata input,
         DecoderCustomTypes.LimitOrderData calldata limit
     ) external view virtual returns (bytes memory addressesFound) {
-        _rejectLimitOrders(limit);
-        (address executor, address dstReceiver) = _checkKyber(input.swapData, input.tokenIn, input.tokenMintSy);
+        _checkLimitOrders(limit);
+        (address executor, address dstReceiver) =
+            _checkSwap(input.swapData, input.pendleSwap, input.tokenIn, input.tokenMintSy);
 
         uint8 ptDecimals = _ptDecimals(market);
         uint256 inAsPt = _rescale(input.netTokenIn, IDecimals(input.tokenIn).decimals(), ptDecimals);
@@ -99,9 +106,9 @@ abstract contract PendleAggregatorDecoderAndSanitizer is BaseDecoderAndSanitizer
         DecoderCustomTypes.TokenOutput calldata output,
         DecoderCustomTypes.LimitOrderData calldata limit
     ) external view virtual returns (bytes memory addressesFound) {
-        _rejectLimitOrders(limit);
+        _checkLimitOrders(limit);
         (address executor, address dstReceiver) =
-            _checkKyber(output.swapData, output.tokenRedeemSy, output.tokenOut);
+            _checkSwap(output.swapData, output.pendleSwap, output.tokenRedeemSy, output.tokenOut);
 
         uint256 assetOut = exactPtIn * PT_TWAP_ORACLE.getPtToAssetRate(market, TWAP_DURATION) / 1e18;
         uint256 fairOut = _rescale(assetOut, _ptDecimals(market), IDecimals(output.tokenOut).decimals());
@@ -119,6 +126,22 @@ abstract contract PendleAggregatorDecoderAndSanitizer is BaseDecoderAndSanitizer
             executor,
             dstReceiver
         );
+    }
+
+    /// No swap: the SY takes the token itself, so nothing may be routed and both ends are one token.
+    function _checkSwap(DecoderCustomTypes.SwapData calldata swapData, address pendleSwap, address srcToken, address dstToken)
+        internal
+        pure
+        returns (address executor, address dstReceiver)
+    {
+        if (swapData.swapType == DecoderCustomTypes.SwapType.NONE) {
+            if (
+                srcToken != dstToken || pendleSwap != address(0) || swapData.extRouter != address(0)
+                    || swapData.extCalldata.length != 0
+            ) revert PendleAggregatorDecoderAndSanitizer__BadRoute();
+            return (address(0), address(0));
+        }
+        return _checkKyber(swapData, srcToken, dstToken);
     }
 
     function _checkKyber(DecoderCustomTypes.SwapData calldata swapData, address srcToken, address dstToken)
@@ -144,7 +167,8 @@ abstract contract PendleAggregatorDecoderAndSanitizer is BaseDecoderAndSanitizer
         return (p.callTarget, d.dstReceiver);
     }
 
-    function _rejectLimitOrders(DecoderCustomTypes.LimitOrderData calldata limit) internal pure {
+    function _checkLimitOrders(DecoderCustomTypes.LimitOrderData calldata limit) internal pure {
+        if (limit.limitRouter == PENDLE_LIMIT_ROUTER) return;
         if (limit.limitRouter != address(0) || limit.normalFills.length > 0 || limit.flashFills.length > 0) {
             revert PendleAggregatorDecoderAndSanitizer__LimitOrdersNotPermitted();
         }

@@ -113,6 +113,21 @@ contract DecoderCustomTypes {
         uint160 sqrtPriceLimitX96;
     }
 
+    // ========================================= AERODROME SLIPSTREAM =========================================
+
+    // Slipstream's SwapRouter keys pools by tickSpacing (not fee) and keeps the deadline field,
+    // so its selector differs from both Uniswap router variants.
+    struct SlipstreamExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        int24 tickSpacing;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+
     // ========================================= MORPHO BLUE =========================================
 
     struct MarketParams {
